@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>interceptor</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <span class="logo">interceptor</span>
+    <span class="toggle" id="interceptToggle"><span class="dot"></span>Intercept: <b id="interceptState">off</b></span>
+    <button id="browserBtn" title="Launch a browser pre-configured to use this proxy">🌐 Open browser</button>
+    <span class="stat">WS <b id="wsState">…</b></span>
+    <span class="spacer"></span>
+    <span class="stat">flows <b id="flowCount">0</b></span>
+    <span class="stat">findings <b id="findingCount">0</b></span>
+  </header>
+
+  <div class="body">
+    <nav>
+      <a data-tab="proxy" class="active">Proxy</a>
+      <a data-tab="intercept">Intercept <span class="badge" id="interceptBadge" style="display:none">0</span></a>
+      <a data-tab="target">Target</a>
+      <a data-tab="repeater">Repeater</a>
+      <a data-tab="intruder">Intruder</a>
+      <a data-tab="scanner">Scanner <span class="badge" id="scanBadge" style="display:none">0</span></a>
+      <a data-tab="decoder">Decoder</a>
+      <a data-tab="extensions">Extensions</a>
+      <a data-tab="logs">Logs</a>
+    </nav>
+    <main>
+      <!-- PROXY / HISTORY -->
+      <section class="tab active" id="tab-proxy">
+        <div class="row">
+          <input id="histSearch" class="grow" placeholder="filter host / path…">
+          <label><input type="checkbox" id="histScope"> in-scope only</label>
+          <button id="histRefresh">Refresh</button>
+          <button class="danger" id="histClear">Clear</button>
+        </div>
+        <div class="split v">
+          <div class="pane" style="flex:1.3">
+            <h3>HTTP history</h3>
+            <div class="content">
+              <table id="histTable">
+                <thead><tr><th>#</th><th>Host</th><th>Method</th><th>Path</th>
+                  <th>Status</th><th>Type</th><th>Len</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="split" style="flex:1">
+            <div class="pane grow"><h3>Request</h3><div class="content"><pre class="msg" id="histReq"></pre></div></div>
+            <div class="pane grow"><h3>Response</h3><div class="content"><pre class="msg" id="histResp"></pre></div></div>
+          </div>
+        </div>
+        <div class="row">
+          <button id="toRepeater" disabled>Send to Repeater →</button>
+          <button id="toIntruder" disabled>Send to Intruder →</button>
+          <button id="auditFlow" class="primary" disabled>Active audit this request</button>
+          <span class="muted" id="histSel">no request selected</span>
+        </div>
+      </section>
+
+      <!-- INTERCEPT -->
+      <section class="tab" id="tab-intercept">
+        <div class="row">
+          <span class="muted">Requests pause here when intercept is on and the host is in scope.</span>
+        </div>
+        <div class="split">
+          <div class="pane" style="flex:.6"><h3>Held requests</h3>
+            <div class="content"><table id="heldTable"><thead><tr><th>Host</th><th>Method</th><th>Path</th></tr></thead><tbody></tbody></table></div>
+          </div>
+          <div class="pane grow"><h3>Edit &amp; forward</h3>
+            <div class="content" style="display:flex;flex-direction:column;padding:8px;gap:8px">
+              <textarea id="interceptEditor" class="editor" placeholder="select a held request"></textarea>
+              <div class="row">
+                <button class="primary" id="forwardBtn" disabled>Forward</button>
+                <button class="danger" id="dropBtn" disabled>Drop</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TARGET -->
+      <section class="tab" id="tab-target">
+        <div class="split">
+          <div class="pane" style="flex:.8"><h3>Scope</h3>
+            <div class="content kv">
+              <label>Include hosts</label><textarea id="scopeInclude" style="min-height:70px" placeholder="example.com&#10;*.example.com"></textarea>
+              <label>Exclude hosts</label><textarea id="scopeExclude" style="min-height:70px" placeholder="logout.example.com"></textarea>
+              <span></span><button class="primary" id="saveScope">Save scope</button>
+            </div>
+          </div>
+          <div class="pane grow"><h3>Targets / site map (subdomains &amp; URLs)</h3>
+            <div class="content" style="display:flex;flex-direction:column">
+              <div style="padding:8px;display:flex;flex-direction:column;gap:6px">
+                <textarea id="targetInput" style="min-height:70px" placeholder="app.example.com&#10;https://api.example.com/v1/users&#10;admin.example.com"></textarea>
+                <div class="row">
+                  <button id="addTargets">Add to list</button>
+                  <label><input type="checkbox" id="crawlToggle"> crawl in-scope links</label>
+                  <button class="primary" id="seedTargets">Fetch all</button>
+                  <button class="primary" id="auditTargets">Active audit all</button>
+                </div>
+              </div>
+              <table id="targetTable"><thead><tr><th>URL</th><th>Status</th></tr></thead><tbody></tbody></table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- REPEATER -->
+      <section class="tab" id="tab-repeater">
+        <div class="row">
+          <select id="repMethod">
+            <option>GET</option><option>POST</option><option>PUT</option>
+            <option>DELETE</option><option>PATCH</option><option>HEAD</option><option>OPTIONS</option>
+          </select>
+          <input id="repUrl" class="grow" placeholder="https://host/path">
+          <label><input type="checkbox" id="repFollow"> follow redirects</label>
+          <button class="primary" id="repSend">Send</button>
+        </div>
+        <div class="split">
+          <div class="pane grow"><h3>Request</h3>
+            <div class="content" style="display:flex;flex-direction:column;padding:8px;gap:6px">
+              <label>Headers (one per line, Key: Value)</label>
+              <textarea id="repHeaders" style="min-height:120px"></textarea>
+              <label>Body</label>
+              <textarea id="repBody" class="grow" style="min-height:100px"></textarea>
+            </div>
+          </div>
+          <div class="pane grow"><h3>Response <span id="repMeta" class="muted"></span></h3>
+            <div class="content"><pre class="msg" id="repResp"></pre></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- INTRUDER -->
+      <section class="tab" id="tab-intruder">
+        <div class="row">
+          <label>Attack</label>
+          <select id="intAttack">
+            <option value="sniper">Sniper</option>
+            <option value="battering_ram">Battering ram</option>
+            <option value="pitchfork">Pitchfork</option>
+            <option value="cluster_bomb">Cluster bomb</option>
+          </select>
+          <input id="intScheme" value="https" style="width:70px">
+          <input id="intHost" class="grow" placeholder="host">
+          <input id="intPort" value="443" style="width:70px">
+          <button class="primary" id="intStart">Start attack</button>
+        </div>
+        <div class="split">
+          <div class="pane grow"><h3>Request template — mark positions with § §</h3>
+            <div class="content" style="display:flex;flex-direction:column;padding:8px;gap:6px">
+              <textarea id="intTemplate" class="grow" style="min-height:160px"></textarea>
+              <button id="addMarker">Wrap selection in § §</button>
+              <label>Payload sets (one payload per line; blank line separates sets for pitchfork/cluster)</label>
+              <textarea id="intPayloads" style="min-height:100px" placeholder="admin&#10;root&#10;test"></textarea>
+            </div>
+          </div>
+          <div class="pane grow"><h3>Results <span id="intMeta" class="muted"></span></h3>
+            <div class="content"><table id="intTable"><thead><tr><th>#</th><th>Payload(s)</th><th>Status</th><th>Len</th><th>ms</th></tr></thead><tbody></tbody></table></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCANNER -->
+      <section class="tab" id="tab-scanner">
+        <div class="split">
+          <div class="pane" style="flex:.6"><h3>Active checks</h3>
+            <div class="content checks" id="checkList"></div>
+          </div>
+          <div class="pane grow"><h3>Findings</h3>
+            <div class="content">
+              <table id="findTable"><thead><tr><th>Severity</th><th>Name</th><th>Host</th><th>Detail</th></tr></thead><tbody></tbody></table>
+            </div>
+          </div>
+        </div>
+        <div class="row"><button class="danger" id="clearFind">Clear findings</button>
+          <span class="muted">Passive checks run automatically on in-scope traffic. Active checks run on demand from Proxy / Target.</span></div>
+      </section>
+
+      <!-- DECODER -->
+      <section class="tab" id="tab-decoder">
+        <div class="row">
+          <select id="decMode"></select>
+          <button id="decEncode">Encode</button>
+          <button id="decDecode" class="primary">Decode</button>
+        </div>
+        <div class="split">
+          <div class="pane grow"><h3>Input</h3><div class="content" style="padding:8px"><textarea id="decIn" style="height:100%;min-height:200px"></textarea></div></div>
+          <div class="pane grow"><h3>Output</h3><div class="content"><pre class="msg" id="decOut"></pre></div></div>
+        </div>
+      </section>
+
+      <!-- EXTENSIONS -->
+      <section class="tab" id="tab-extensions">
+        <div class="pane grow"><h3>Loaded extensions</h3>
+          <div class="content"><table id="extTable"><thead><tr><th>Enabled</th><th>Name</th><th>Description</th><th>File</th></tr></thead><tbody></tbody></table></div>
+        </div>
+        <div class="muted">Drop .py files in the <span class="mono">extensions/</span> folder and restart. Define on_request / on_response / passive_scan.</div>
+      </section>
+
+      <!-- LOGS -->
+      <section class="tab" id="tab-logs">
+        <div class="pane grow"><h3>Event log</h3><div class="content"><pre class="msg" id="logOut"></pre></div></div>
+      </section>
+    </main>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

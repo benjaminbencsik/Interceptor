@@ -1,0 +1,62 @@
+name: Build Windows exe
+
+# Builds a native Windows single-file Interceptor.exe on a Windows runner.
+# - Runs on every push to main and on manual dispatch -> downloadable artifact
+# - On a version tag (v1.0.0, ...) -> also publishes a GitHub Release with the exe
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build exe
+        run: pyinstaller --clean --noconfirm interceptor.spec
+
+      - name: Smoke test (starts, serves UI, then exits)
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath ".\dist\Interceptor.exe" `
+               -ArgumentList "--web-port","18777","--proxy-port","18778" `
+               -PassThru
+          Start-Sleep -Seconds 12
+          try {
+            $r = Invoke-WebRequest -Uri "http://127.0.0.1:18777/api/status" -UseBasicParsing -TimeoutSec 5
+            if ($r.StatusCode -ne 200) { throw "status $($r.StatusCode)" }
+            Write-Host "Smoke test OK: $($r.Content)"
+          } finally {
+            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Interceptor-windows
+          path: dist/Interceptor.exe
+          if-no-files-found: error
+
+      - name: Publish release (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/Interceptor.exe
+          generate_release_notes: true

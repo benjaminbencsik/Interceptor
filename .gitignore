@@ -1,0 +1,21 @@
+# build artifacts
+build/
+dist/
+*.spec.bak
+
+# portable windows python (created by run_windows.bat)
+pydist/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# data
+*.sqlite
+*.sqlite3
+
+# os
+.DS_Store
+Thumbs.db
