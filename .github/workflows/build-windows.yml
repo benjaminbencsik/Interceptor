@@ -10,6 +10,9 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -58,9 +61,12 @@ jobs:
           path: dist/Interceptor.exe
           if-no-files-found: error
 
-      - name: Publish release (tags only)
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
+          # use the pushed tag when triggered by one, else a default tag the
+          # action creates on the server (no tag push needed from CI)
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.0.0' }}
+          name: Interceptor ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.0.0' }}
           files: dist/Interceptor.exe
           generate_release_notes: true
