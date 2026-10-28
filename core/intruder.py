@@ -1,7 +1,7 @@
 """Intruder: payload-driven request automation.
 
 Works on a raw request template with payload positions marked by the §
-character (two § per position, as in Burp). Supports the four classic
+character (two § per position). Supports the four classic
 attack types. Results stream over the event bus so the UI updates live.
 """
 from __future__ import annotations

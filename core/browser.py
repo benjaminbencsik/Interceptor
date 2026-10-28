@@ -1,9 +1,9 @@
 """Built-in browser launcher.
 
 Opens a Chromium instance pre-wired to route through the proxy and trust
-its interception, so the tester gets Burp-style "one-click browse" with no
-manual proxy or certificate setup. Uses the system Chrome/Chromium when
-found, otherwise falls back to Playwright's managed Chromium.
+its interception, so the tester gets one-click browsing with no manual proxy
+or certificate setup. Uses the system Chrome/Chromium when found, otherwise
+falls back to Playwright's managed Chromium.
 
 The browser runs in a throwaway profile so it never touches the user's real
 Chrome. Testers who prefer their own browser + an extension like FoxyProxy

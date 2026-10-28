@@ -1,4 +1,4 @@
-"""Target scope: host include/exclude rules, like Burp's Target > Scope.
+"""Target scope: host include/exclude rules that bound what gets tested.
 
 Rules are simple substring/wildcard host matches. When any include rule
 exists, a host must match one to be in scope; exclude rules always win.
