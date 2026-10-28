@@ -20,27 +20,8 @@ web UI.
 - **Built-in browser** — one-click Chromium pre-wired to the proxy.
 - **Extensions** — drop a `.py` file in `extensions/`.
 
-## Run it
+## Download & run
 
-**Windows (recommended):** download `Interceptor.exe` from the latest
-[Actions run](../../actions) (or a release) and double-click it. No install.
-
-**From source:**
-
-```bash
-pip install -r requirements.txt
-python run.py            # proxy :8080, web UI :8000
-```
-
-Open **http://127.0.0.1:8000**. Click **Open browser** to start browsing
-through the proxy, or point your own browser at `127.0.0.1:8080`.
-
-## Build the exe yourself
-
-```bash
-pip install -r requirements.txt pyinstaller
-pyinstaller --clean --noconfirm interceptor.spec   # -> dist/Interceptor.exe
-```
-
-Pushing to `main` builds it automatically on a Windows runner; tag `v*` to
-publish a release.
+Grab `Interceptor.exe` from the [latest release](../../releases/latest) and
+double-click it. No install. It starts the proxy and opens the UI in your
+browser; click **Open browser** to browse through the proxy.
