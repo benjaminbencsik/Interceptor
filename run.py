@@ -67,7 +67,29 @@ async def amain(args) -> None:
     await asyncio.gather(master.run(), server.serve())
 
 
+def _pick_port(host: str, preferred: int) -> tuple[int, bool]:
+    """Return (port, moved). Use `preferred` if free, else an OS-assigned
+    free port so a double-click never dies just because a port is taken."""
+    import socket
+    for cand in (preferred, 0):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.bind((host, cand))
+            port = s.getsockname()[1]
+            s.close()
+            return (preferred, False) if cand == preferred else (port, True)
+        except OSError:
+            try:
+                s.close()
+            except OSError:
+                pass
+    return preferred, False
+
+
 def main() -> None:
+    import multiprocessing
+    multiprocessing.freeze_support()  # safe no-op unless a child is spawned
+
     p = argparse.ArgumentParser(description="interceptor")
     p.add_argument("--proxy-host", default="127.0.0.1")
     p.add_argument("--proxy-port", type=int, default=8080)
@@ -78,10 +100,32 @@ def main() -> None:
     p.add_argument("--open-ui", action="store_true",
                    help="open the web UI in your default browser on startup")
     args = p.parse_args()
+
+    # Avoid the classic "window flashes and closes" crash when 8080/8000
+    # are already in use: fall back to a free port and say so.
+    args.proxy_port, pmoved = _pick_port(args.proxy_host, args.proxy_port)
+    args.web_port, wmoved = _pick_port(args.web_host, args.web_port)
+    if pmoved:
+        print(f"  note: proxy port was busy, using {args.proxy_port} instead")
+    if wmoved:
+        print(f"  note: web port was busy, using {args.web_port} instead")
+
     try:
         asyncio.run(amain(args))
     except KeyboardInterrupt:
         print("\nshutting down.")
+    except Exception:
+        import traceback
+        print("\n" + "=" * 60)
+        print("Interceptor failed to start. Details below:\n")
+        traceback.print_exc()
+        print("=" * 60)
+        if getattr(sys, "frozen", False):
+            try:
+                input("\nPress Enter to close this window...")
+            except EOFError:
+                pass
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
